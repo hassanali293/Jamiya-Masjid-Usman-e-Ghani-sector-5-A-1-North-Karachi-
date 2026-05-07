@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ur" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>جامع مسجد عثمان غنی - قربانی پورٹل</title>
+    <style>
+        :root { --primary: #1b5e20; --gold: #c5a059; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: var(--bg); margin: 0; padding: 0; text-align: center; }
+        
+        header { 
+            background: var(--primary); 
+            color: white; 
+            padding: 40px 20px; 
+            border-bottom: 8px solid var(--gold); 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .main-card { 
+            max-width: 450px; 
+            margin: -30px auto 40px; 
+            background: white; 
+            padding: 30px; 
+            border-radius: 25px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1); 
+        }
+
+        h2 { color: var(--primary); margin-bottom: 5px; }
+        .sub-text { color: #666; margin-bottom: 25px; font-size: 15px; }
+
+        input { 
+            width: 100%; 
+            padding: 18px; 
+            border: 2px solid #e0e0e0; 
+            border-radius: 15px; 
+            font-size: 20px; 
+            text-align: center; 
+            box-sizing: border-box;
+            transition: 0.3s;
+            margin-bottom: 20px;
+        }
+        input:focus { border-color: var(--gold); outline: none; }
+
+        button { 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            padding: 18px; 
+            border-radius: 15px; 
+            font-size: 18px; 
+            font-weight: bold; 
+            width: 100%; 
+            cursor: pointer; 
+            box-shadow: 0 5px 15px rgba(27, 94, 32, 0.3);
+        }
+        button:hover { background: #2e7d32; }
+
+        #loader { display: none; margin: 20px 0; color: var(--primary); font-weight: bold; }
+
+        #result { 
+            display: none; 
+            margin-top: 30px; 
+            padding: 25px; 
+            border-radius: 20px; 
+            background: #fafafa; 
+            border: 1px solid #eee; 
+        }
+
+        .status-box { 
+            font-size: 24px; 
+            font-weight: bold; 
+            padding: 20px; 
+            border-radius: 15px; 
+            margin-top: 15px; 
+            display: block;
+        }
+
+        .waiting { background: #fff8e1; color: #f57f17; border: 2px solid #fbc02d; }
+        .done { background: #e8f5e9; color: #2e7d32; border: 2px solid #4caf50; }
+
+        footer { padding: 20px; color: #888; font-size: 13px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>جامع مسجد عثمان غنی (رضی اللہ عنہ)</h1>
+    <p>ایس ٹی -11 سیکٹر 5-اے /1، نارتھ کراچی</p>
+</header>
+
+<div class="main-card">
+    <h2>قربانی اپڈیٹ</h2>
+    <p class="sub-text">گائے نمبر درج کر کے تازہ ترین صورتحال معلوم کریں</p>
+
+    <input type="number" id="cowId" placeholder="گائے نمبر لکھیں (1 سے 31)">
+    <button onclick="checkQurbani()">اسٹیٹس چیک کریں</button>
+
+    <div id="loader">معلومات تلاش کی جا رہی ہیں...</div>
+
+    <div id="result">
+        <div style="font-size: 18px; color: #555;">گائے نمبر <span id="displayCowNum" style="font-weight:bold; color:var(--primary);"></span> کی صورتحال:</div>
+        <div id="statusLabel" class="status-box"></div>
+    </div>
+</div>
+
+<footer>
+    انتظامیہ جامع مسجد عثمان غنی &copy; 2026
+</footer>
+
+<script>
+    // آپ کی شیٹ کا ID
+    const spreadsheetId = '1vFGhbVi_ep8mbt5wn-C7aFfLCcW_RklnUo8HJ7ZsP8U';
+    // ڈیٹا حاصل کرنے کا لنک
+    const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json`;
+
+    async function checkQurbani() {
+        const cowNumber = document.getElementById('cowId').value.trim();
+        const loader = document.getElementById('loader');
+        const resultDiv = document.getElementById('result');
+        const statusLabel = document.getElementById('statusLabel');
+
+        if (!cowNumber) {
+            alert("براہ کرم گائے نمبر درج کریں۔");
+            return;
+        }
+
+        loader.style.display = "block";
+        resultDiv.style.display = "none";
+
+        try {
+            const response = await fetch(url);
+            const text = await response.text();
+            
+            // گوگل کے ڈیٹا سے JSON نکالنا
+            const json = JSON.parse(text.substring(47).slice(0, -2));
+            const rows = json.table.rows;
+
+            let found = false;
+
+            for (let row of rows) {
+                // کالم A (Index 0) - گائے نمبر
+                const sheetCowNum = row.c[0] ? row.c[0].v.toString() : "";
+                
+                if (sheetCowNum === cowNumber) {
+                    // کالم B (Index 1) - اسٹیٹس
+                    const statusText = row.c[1] ? row.c[1].v : "ڈیٹا موجود نہیں";
+                    
+                    document.getElementById('displayCowNum').innerText = cowNumber;
+                    statusLabel.innerText = statusText;
+
+                    // اگر اسٹیٹس میں "تیار" یا "ذبح" کا لفظ ہو تو سبز رنگ، ورنہ پیلا رنگ
+                    if (statusText.includes("تیار") || statusText.includes("ذبح") || statusText.includes("مکمل")) {
+                        statusLabel.className = "status-box done";
+                    } else {
+                        statusLabel.className = "status-box waiting";
+                    }
+
+                    found = true;
+                    resultDiv.style.display = "block";
+                    break;
+                }
+            }
+
+            if (!found) {
+                alert("معذرت، گائے نمبر " + cowNumber + " کا ڈیٹا نہیں ملا۔");
+            }
+
+        } catch (err) {
+            console.error(err);
+            alert("ڈیٹا لوڈ کرنے میں مسئلہ ہے۔ براہ کرم یقینی بنائیں کہ شیٹ پبلک ہے۔");
+        } finally {
+            loader.style.display = "none";
+        }
+    }
+</script>
+
+</body>
+</html>
